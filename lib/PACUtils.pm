@@ -2180,7 +2180,7 @@ sub _cfgSanityCheck {
     $$cfg{'environments'}{'__PAC_SHELL__'}{'favourite'} = 0;
     $$cfg{'environments'}{'__PAC_SHELL__'}{'autossh'} = 0;
     $$cfg{'environments'}{'__PAC_SHELL__'}{'cluster'} = [];
-    $$cfg{'environments'}{'__PAC_SHELL__'}{'variables'} = [];
+    $$cfg{'environments'}{'__PAC_SHELL__'}{'variables'} = {};
     $$cfg{'environments'}{'__PAC_SHELL__'}{'screenshots'} = [];
     $$cfg{'environments'}{'__PAC_SHELL__'}{'local before'} = [];
     $$cfg{'environments'}{'__PAC_SHELL__'}{'expect'} = [];
@@ -2348,21 +2348,8 @@ sub _cfgSanityCheck {
         $$cfg{'environments'}{$uuid}{'use sudo'} //= 0;
 
         if (! defined $$cfg{'environments'}{$uuid}{'variables'}) {
-            $$cfg{'environments'}{$uuid}{'variables'} =[];
-        } else {
-            my $i = 0;
-            foreach my $hash (@{$$cfg{'environments'}{$uuid}{'variables'}}) {
-                if (! ref($hash)) {
-                    delete $$cfg{'environments'}{$uuid}{'variables'}[$i];
-                    $$cfg{'environments'}{$uuid}{'variables'}[$i]{'hide'} = 0;
-                    $$cfg{'environments'}{$uuid}{'variables'}[$i]{'txt'} = $hash // '';
-                } else {
-                    $$hash{'hide'} //= 0;
-                    $$hash{'txt'} //= '';
-                }
-                ++$i;
-            }
-        }
+            $$cfg{'environments'}{$uuid}{'variables'} ={};
+		}
 
         if (! defined $$cfg{'environments'}{$uuid}{'screenshots'}) {
             $$cfg{'environments'}{$uuid}{'screenshots'} = [];
@@ -2679,11 +2666,13 @@ sub _cipherCFG {
             }
         }
 
-        foreach my $hash (@{$$cfg{'environments'}{$uuid}{'variables'}}) {
-            if ($$hash{'hide'} eq '1') {
-                $$hash{'txt'} = $CIPHER->encrypt_hex(encode('UTF-8',$$hash{'txt'}));
-            }
-        }
+		foreach my $var ( keys %{ $$cfg{'environments'}{$uuid}{'variables'} } ) {
+			if ($$cfg{'environments'}{$uuid}{'variables'}{$var}{'hidden'} eq '1' ){
+				$$cfg{'environments'}{$uuid}{'variables'}{$var}{'value'} = $CIPHER -> encrypt_hex(
+					encode( 'utf8', $$cfg{'environments'}{$uuid}{'variables'}{$var}{'value'} )
+				);
+			}
+		}
     }
 
     return 1;
@@ -2732,13 +2721,13 @@ sub _decipherCFG {
             }
         }
 
-        foreach my $hash (@{$$cfg{'environments'}{$uuid}{'variables'}}) {
-            if ($$hash{'hide'} eq '1') {
-                eval {
-                    $$hash{'txt'} = $CIPHER->decrypt_hex(encode('UTF-8',$$hash{'txt'}));
-                };
-            }
-        }
+		foreach my $var ( keys %{ $$cfg{'environments'}{$uuid}{'variables'} } ) {
+			if($$cfg{'environments'}{$uuid}{'variables'}{$var}{'hidden'} eq '1' ){
+				eval { $$cfg{'environments'}{$uuid}{'variables'}{$var}{'value'} = decode( 'utf8',
+					$CIPHER -> decrypt_hex( $$cfg{'environments'}{$uuid}{'variables'}{$var}{'value'} ) );
+				};
+			}
+		}
     }
 
     return 1;
@@ -2936,17 +2925,17 @@ sub _subst {
         }
     }
 
-    # Replace '<V:#>' with user saved variables for '$connection_cmd'
-    if (defined $uuid) {
-        while ($string =~ /<V:(\d+?)>/go) {
-            my $var = $1;
-            if (defined $$CFG{'environments'}{$uuid}{'variables'}[$var]) {
-                my $val = $$CFG{'environments'}{$uuid}{'variables'}[$var]{txt} // '';
-                $string =~ s/<V:$var>/$val/g;
-                $ret = $string;
-            }
-        }
-    }
+	# Replace '<V:.+>' with user saved variables for '$connection_cmd'
+	if ( defined $uuid ) {
+		while ( $string =~ /<V:(.+?)>/go ) {
+			my $var = $1;
+			if ( defined $$CFG{'environments'}{$uuid}{'variables'}{ $var } ) {
+				my $val = $$CFG{'environments'}{$uuid}{'variables'}{ $var }{value} // '';
+				$string =~ s/<V:$var>/$val/g;
+				$ret = $string;
+			}
+		}
+	}
 
     # Replace '<ENV:#>' with environment variables for '$connection_cmd'
     while ($string =~ /<ENV:(.+?)>/go) {

@@ -2526,35 +2526,13 @@ sub _treeConnections_menu_lite {
         });
     }
 
-    # Quick Edit variables
-    my @var_submenu;
-    my $i = 0;
-    foreach my $var (map{ $_->{txt} // '' } @{ $$self{_CFG}{'environments'}{$sel[0]}{'variables'} }) {
-        my $j = $i;
-        push(@var_submenu, {
-            label => '<V:' . $j . '> = ' . $var,
-            code => sub {
-                my $new_var = _wEnterValue(
-                    $$self{_GUI}{main},
-                    "Change variable <b>" . __("<V:$j>") . "</b>",
-                    'Enter a NEW value or close to keep this value...',
-                    $var
-                );
-                if (!defined $new_var) {
-                    return 1;
-                }
-                $$self{_CFG}{'environments'}{$sel[0]}{'variables'}[$j]{txt} = $new_var;
-            }
-        });
-
-        ++$i;
-    }
-    if (scalar(@sel) == 1) {
-        push(@tree_menu_items, {
+	# Quick Edit variables
+    if ( scalar( @sel ) == 1 ) {
+        push( @tree_menu_items, {
             label => 'Edit Local Variables',
             stockicon => 'gtk-dialog-question',
             sensitive => ! $with_protected,
-            submenu => \@var_submenu
+            submenu	=> PACVariables::generateQuickEditSubMenu($$self{_CFG}{'environments'}{$sel[0]}{variables})
         });
     }
 
@@ -2789,33 +2767,12 @@ sub _treeConnections_menu {
         });
     }
     # Quick Edit variables
-    my @var_submenu;
-    my $i = 0;
-    foreach my $var (map{ $_->{txt} // '' } @{ $$self{_CFG}{'environments'}{$sel[0]}{'variables'} }) {
-        my $j = $i;
-        push(@var_submenu, {
-            label => '<V:' . $j . '> = ' . $var,
-            code => sub {
-                my $new_var = _wEnterValue(
-                    $$self{_GUI}{main},
-                    "Change variable <b>" . __("<V:$j>") . "</b>",
-                    'Enter a NEW value or close to keep this value...',
-                    $var
-                );
-                if (!defined $new_var) {
-                    return 1;
-                }
-                $$self{_CFG}{'environments'}{$sel[0]}{'variables'}[$j]{txt} = $new_var;
-            }
-        });
-        ++$i;
-    }
-    if ((scalar(@sel) == 1) && !($$self{_CFG}{'environments'}{$sel[0]}{'_is_group'} || $sel[0] eq '__PAC__ROOT__')) {
+    if (( scalar( @sel ) == 1 ) && ! ( $$self{_CFG}{'environments'}{$sel[0]}{'_is_group'} || $sel[0] eq '__PAC__ROOT__' )) {
         push(@tree_menu_items, {
             label => 'Edit Local Variables',
             stockicon => 'gtk-dialog-question',
             sensitive => ! $with_protected,
-            submenu => \@var_submenu
+            submenu => PACVariables::generateQuickEditSubMenu($$self{_CFG}{'environments'}{$sel[0]}{variables})
         });
     }
 
@@ -3404,6 +3361,32 @@ sub _readConfiguration {
     if ($continue) {
         print STDERR "WARN: No configuration file found in '$CFG_DIR', creating a new one...\n";
     }
+
+	foreach my $uuid ( keys %{ $$self{_CFG}{'environments'} } ) {
+		#convert config to named local variables
+		if ( ! defined $$self{_CFG}{'environments'}{$uuid}{'variables'} ) {
+			$$self{_CFG}{'environments'}{$uuid}{'variables'}		={};
+		} else {
+			if( ref $$self{_CFG}{'environments'}{$uuid}{'variables'} eq 'ARRAY'){
+				#old version: array of unnamed variables
+				my %variables=();
+				my $name=0;
+				for my $hash (@{ $$self{_CFG}{'environments'}{$uuid}{'variables'} }){
+					if ( ref $hash eq 'HASH'){
+						 $variables{''.$name}{value}  = $hash->{txt};
+						 $variables{''.$name}{hidden} = $hash->{hide} // 0;
+					}
+					else{
+						 #even older version: array without hide/txt
+						 $variables{''.$name}{value}  = $hash;
+						 $variables{''.$name}{hidden} = 0;
+					}
+					$name++;
+				}
+				$$self{_CFG}{'environments'}{$uuid}{'variables'}=\%variables;
+			}
+		}
+	}
 
     # Make some sanity checks
     $splash and PACUtils::_splash(1, "$APPNAME (v$APPVERSION):Checking config...", 4, 5);
@@ -4316,21 +4299,10 @@ sub _bulkEdit {
             my @menu_items;
 
             # Populate with global defined variables
-            my @global_variables_menu;
-            foreach my $var (sort { $a cmp $b } keys %{ $PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'} }) {
-                my $val = $PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'}{$var}{'value'};
-                push(@global_variables_menu, {
-                    label => "<GV:$var> ($val)",
-                    code => sub { $w{gui}{"entry$key"}->insert_text("<GV:$var>", -1, $w{gui}{"entry$key"}->get_position()); }
-                    });
-                }
-                push(@menu_items, {
-                    label => 'Global variables...',
-                    sensitive => scalar(@global_variables_menu),
-                    submenu => \@global_variables_menu
-                });
+            push( @menu_items,
+                PACVariables::generatePopupMenu($PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'},"Global variables...","GV",$w{gui}{"entry$key"})  );
 
-                # Populate with environment variables
+            # Populate with environment variables
                 my @environment_menu;
                 foreach my $key (sort { $a cmp $b } keys %ENV) {
                     my $value = $ENV{$key};
@@ -4477,19 +4449,9 @@ sub _bulkEdit {
             my @menu_items;
 
             # Populate with global defined variables
-            my @global_variables_menu;
-            foreach my $var (sort { $a cmp $b } keys %{ $PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'} }) {
-                my $val = $PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'}{$var}{'value'};
-                push(@global_variables_menu, {
-                    label => "<GV:$var> ($val)",
-                    code => sub { $w{gui}{"entry$key"}->insert_text("<GV:$var>", -1, $w{gui}{"entry$key"}->get_position()); }
-                });
-            }
-            push(@menu_items, {
-                label => 'Global variables...',
-                sensitive => scalar(@global_variables_menu),
-                submenu => \@global_variables_menu
-            });
+            push( @menu_items,
+                PACVariables::generatePopupMenu($PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'},"Global variables...","GV",$w{gui}{"entry$key"})  );
+
             # Populate with environment variables
             my @environment_menu;
             foreach my $key (sort { $a cmp $b } keys %ENV) {

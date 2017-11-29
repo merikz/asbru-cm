@@ -311,44 +311,15 @@ sub _buildExec {
 
         my @menu_items;
 
-        # Populate with user defined variables
-        my @variables_menu;
-        my $i = 0;
-        foreach my $value (map{$_->{txt} // ''} @{$$self{variables}}) {
-            my $j = $i;
-            push(@variables_menu,
-            {
-                label => "<V:$j> ($value)",
-                code => sub {
-                    $w{txt}->insert_text("<V:$j>", -1, $w{txt}->get_position());
-                }
-            });
-            ++$i;
-        }
-        push(@menu_items, {
-            label => 'User Local variables...',
-            sensitive => scalar @{$$self{variables}},
-            submenu => \@variables_menu
-        });
+		# Populate with user defined variables
+		push( @menu_items,
+			PACVariables::generatePopupMenu($$self{variables},"User variables...","V",$w{txt}) );
 
-        # Populate with global defined variables
-        my @global_variables_menu;
-        foreach my $var (sort {$a cmp $b} keys %{$PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'}}) {
-            my $val = $PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'}{$var}{'value'};
-            push(@global_variables_menu, {
-                label => "<GV:$var> ($val)",
-                code => sub {
-                    $w{txt}->insert_text("<GV:$var>", -1, $w{txt}->get_position());
-                }
-            });
-        }
-        push(@menu_items, {
-            label => 'Global variables...',
-            sensitive => scalar(@global_variables_menu),
-            submenu => \@global_variables_menu
-        });
+		# Populate with global defined variables
+		push( @menu_items,
+			PACVariables::generatePopupMenu($PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'},"Global variables...","GV",$w{txt})  );
 
-        # Populate with environment variables
+		# Populate with environment variables
         my @environment_menu;
         foreach my $key (sort {$a cmp $b} keys %ENV) {
             my $value = $ENV{$key};

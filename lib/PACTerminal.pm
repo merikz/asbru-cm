@@ -1922,44 +1922,14 @@ sub _vteMenu {
     my @insert_menu_items;
 
     # Populate with user defined variables
-    my @variables_menu;
-    my $i = 0;
-    foreach my $value (map{$_->{txt} // ''} @{$$self{variables}}) {
-        my $j = $i;
-        push(@variables_menu,
-        {
-            #label => "<V:$j> ($value)",
-            #code => sub {_vteFeedChild($$self{_GUI}{_VTE}, _subst("<V:$j>", $$self{_CFG}, $$self{_UUID}));}
-            label => __($j),
-            tooltip => "$j=$value",
-            code => sub {my $t = _subst("<V:$j>", $$self{_CFG}, $$self{_UUID}); _vteFeedChild($$self{_GUI}{_VTE}, $t);}
-        });
-        ++$i;
-    }
-    push(@insert_menu_items,
-    {
-        label => 'User variables...',
-        sensitive => scalar @{$$self{variables}},
-        submenu => \@variables_menu
-    });
+    push( @insert_menu_items,
+		PACVariables::generateRightClickMenu($$self{_CFG}{environments}{$$self{_UUID}}{variables},'User variables...','V',$self)
+    );
 
-    # Populate with global defined variables
-    my @global_variables_menu;
-    foreach my $var (sort {$a cmp $b} keys %{$PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'}}) {
-        my $val = $PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'}{$var}{'value'};
-        push(@global_variables_menu,
-        {
-            label => __($var),
-            tooltip => "$var=$val",
-            code => sub {my $t = _subst("<GV:$var>", $$self{_CFG}, $$self{_UUID}); _vteFeedChild($$self{_GUI}{_VTE}, $t);}
-        });
-    }
-    push(@insert_menu_items,
-    {
-        label => 'Global variables...',
-        sensitive => scalar(@global_variables_menu),
-        submenu => \@global_variables_menu
-    });
+	# Populate with global defined variables
+	push( @insert_menu_items,
+		PACVariables::generateRightClickMenu($PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'},'Global variables...','GV',$self)
+    );
 
     # Populate with environment variables
     my @environment_menu;

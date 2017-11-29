@@ -46,7 +46,7 @@ use Gtk3::SimpleList;
 # PAC modules
 use PACUtils;
 use PACTermOpts;
-use PACGlobalVarEntry;
+use PACVariables;
 use PACExecEntry;
 use PACKeePass;
 
@@ -173,7 +173,7 @@ sub _initGUI {
     _($self, 'btnExportYAML')->set_image(Gtk3::Image->new_from_stock('gtk-save-as', 'button'));
     _($self, 'btnExportYAML')->set_label('Export config...');
     _($self, 'alignShellOpts')->add(($$self{_SHELL} = PACTermOpts->new())->{container});
-    _($self, 'alignGlobalVar')->add(($$self{_VARIABLES} = PACGlobalVarEntry->new())->{container});
+    _($self, 'alignGlobalVar')->add(($$self{_VARIABLES} = PACVariables->new())->{container});
     _($self, 'alignCmdRemote')->add(($$self{_CMD_REMOTE} = PACExecEntry->new())->{container});
     _($self, 'alignCmdLocal')->add(($$self{_CMD_LOCAL} = PACExecEntry->new())->{container});
     _($self, 'alignKeePass')->add(($$self{_KEEPASS} = PACKeePass->new())->{container});
@@ -341,39 +341,12 @@ sub _setupCallbacks {
         });
 
         # Populate with user defined variables
-        my @variables_menu;
-        my $i = 0;
-        foreach my $value (map{$_->{txt} // ''} @{$$self{variables}}) {
-            my $j = $i;
-            push(@variables_menu, {
-                label => "<V:$j> ($value)",
-                code => sub {
-                    _($self, 'entryCfgSudoPassword')->insert_text("<V:$j>", -1, _($self, 'entryCfgSudoPassword')->get_position());
-                }
-            });
-            ++$i;
-        }
-        push(@menu_items, {
-            label => 'User variables...',
-            sensitive => scalar @{$$self{variables}},
-            submenu => \@variables_menu
-        });
-
+        push( @menu_items,
+            PACVariables::generatePopupMenu($$self{variables},"User variables...","V",_( $self, 'entryCfgSudoPassword' )) );
 
         # Populate with global defined variables
-        my @global_variables_menu;
-        foreach my $var (sort {$a cmp $b} keys %{$PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'}}) {
-            my $val = $PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'}{$var}{'value'};
-            push(@global_variables_menu, {
-                label => "<GV:$var> ($val)",
-                code => sub {_($self, 'entryCfgSudoPassword')->insert_text("<GV:$var>", -1, _($self, 'entryCfgSudoPassword')->get_position());}
-            });
-        }
-        push(@menu_items, {
-            label => 'Global variables...',
-            sensitive => scalar(@global_variables_menu),
-            submenu => \@global_variables_menu
-        });
+        push( @menu_items,
+            PACVariables::generatePopupMenu($PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'},"Global variables...","GV",_( $self, 'entryCfgSudoPassword' )) );
 
         # Populate with environment variables
         my @environment_menu;

@@ -52,7 +52,7 @@ use PACMethod;
 use PACExpectEntry;
 use PACExecEntry;
 use PACPrePostEntry;
-use PACVarEntry;
+use PACVariables;
 use PACTermOpts;
 
 # END: Import Modules
@@ -173,7 +173,7 @@ sub _initGUI {
     _($self, 'alignSpecific')->add($PACMethod::CONTAINER);
     _($self, 'alignTermOpts')->add(($$self{_TERMOPTS} = PACTermOpts->new())->{container});
     _($self, 'imgTermOpts')->set_from_stock('pac-terminal-ok-small', 'button');
-    _($self, 'alignVar')->add(($$self{_VARIABLES} = PACVarEntry->new())->{container});
+    _($self, 'alignVar')->add(($$self{_VARIABLES} = PACVariables->new())->{container});
     _($self, 'alignPreExec')->add(($$self{_PRE_EXEC} = PACPrePostEntry->new())->{container});
     _($self, 'alignPostExec')->add(($$self{_POST_EXEC} = PACPrePostEntry->new())->{container});
     _($self, 'alignMacros')->add(($$self{_MACROS} = PACExecEntry->new())->{container});
@@ -364,39 +364,15 @@ sub _setupCallbacks {
 
         my @menu_items;
 
-        # Populate with user defined variables
-        my @variables_menu;
-        my $i = 0;
-        foreach my $value (map{$_->{txt} // ''} @{$self->{_VARIABLES}->{cfg}}) {
-            my $j = $i;
-            push(@variables_menu, {
-                label => "<V:$j> ($value)",
-                code => sub {_($self, "entryEditSendString")->insert_text("<V:$j>", -1, _($self, "entryEditSendString")->get_position);}
-            });
-            ++$i;
-        }
-        push(@menu_items, {
-            label => 'User variables...',
-            sensitive => scalar @{$self->{_VARIABLES}->{cfg}},
-            submenu => \@variables_menu
-        });
+		# Populate with user defined variables
+		push( @menu_items,
+			PACVariables::generatePopupMenu($self->{_VARIABLES}->{cfg},"User variables...","V",_( $self, "entryEditSendString" ))  );
 
-        # Populate with global defined variables
-        my @global_variables_menu;
-        foreach my $var (sort {$a cmp $b} keys %{$PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'}}) {
-            my $val = $PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'}{$var}{'value'};
-            push(@global_variables_menu, {
-                label => "<GV:$var> ($val)",
-                code => sub {_($self, "entryEditSendString")->insert_text("<GV:$var>", -1, _($self, "entryEditSendString")->get_position);}
-            });
-        }
-        push(@menu_items, {
-            label => 'Global variables...',
-            sensitive => scalar(@global_variables_menu),
-            submenu => \@global_variables_menu
-        });
+		# Populate with global defined variables
+		push( @menu_items,
+			PACVariables::generatePopupMenu($PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'},"Global variables...","GV",_( $self, "entryEditSendString" ))  );
 
-        # Populate with environment variables
+		# Populate with environment variables
         my @environment_menu;
         foreach my $key (sort {$a cmp $b} keys %ENV) {
             my $value = $ENV{$key};
@@ -504,39 +480,15 @@ sub _setupCallbacks {
                 code => sub {_($self, "entry$w")->delete_text(0, -1); _($self, "entry$w")->insert_text('<<ASK_PASS>>', -1, 0);}
             }) if $w eq 'Password';
 
-            # Populate with user defined variables
-            my @variables_menu;
-            my $i = 0;
-            foreach my $value (map{$_->{txt} // ''} @{$self->{_VARIABLES}->{cfg}}) {
-                my $j = $i;
-                push(@variables_menu, {
-                    label => "<V:$j> ($value)",
-                    code => sub {_($self, "entry$w")->insert_text("<V:$j>", -1, _($self, "entry$w")->get_position);}
-                });
-                ++$i;
-            }
-            push(@menu_items, {
-                label => 'User variables...',
-                sensitive => scalar @{$self->{_VARIABLES}->{cfg}},
-                submenu => \@variables_menu
-            });
+        # Populate with user defined variables
+        push( @menu_items,
+            PACVariables::generatePopupMenu($self->{_VARIABLES}->{cfg},"User variables...","V",_( $self, "entry$w" ))  );
 
-            # Populate with global defined variables
-            my @global_variables_menu;
-            foreach my $var (sort {$a cmp $b} keys %{$PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'}}) {
-                my $val = $PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'}{$var}{'value'};
-                push(@global_variables_menu, {
-                    label => "<GV:$var> ($val)",
-                    code => sub {_($self, "entry$w")->insert_text("<GV:$var>", -1, _($self, "entry$w")->get_position);}
-                });
-            }
-            push(@menu_items, {
-                label => 'Global variables...',
-                sensitive => scalar(@global_variables_menu),
-                submenu => \@global_variables_menu
-            });
+        # Populate with global defined variables
+        push( @menu_items,
+            PACVariables::generatePopupMenu($PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'},"Global variables...","GV",_( $self, "entry$w" ))  );
 
-            # Populate with environment variables
+        # Populate with environment variables
             my @environment_menu;
             foreach my $key (sort {$a cmp $b} keys %ENV) {
                 my $value = $ENV{$key};

@@ -1,4 +1,4 @@
-package PACGlobalVarEntry;
+package PACVariables;
 
 ###############################################################################
 # This file is part of Ásbrú Connection Manager
@@ -48,7 +48,7 @@ use PACUtils;
 ###################################################################
 # Define GLOBAL CLASS variables
 
-
+my $newVariableName="variable name";
 
 # END: Define GLOBAL CLASS variables
 ###################################################################
@@ -67,30 +67,28 @@ sub new {
     $self->{list} = [];
 
     _buildVarGUI($self);
-    defined $self->{cfg} and PACGlobalVarEntry::update($self->{cfg});
+    defined $self->{cfg} and PACVariablesEntry::update($self->{cfg});
 
     bless($self, $class);
     return $self;
 }
 
 sub update {
-    my $self = shift;
-    my $cfg = shift;
+	my $self	= shift;
+	my $cfg		= shift;
 
-    defined $cfg and $$self{cfg} = $cfg;
+	defined $cfg and $$self{cfg} = $cfg;
 
-    # Destroy previous widgets
-    $$self{frame}{vbvar}->foreach(sub {$_[0]->destroy();});
+	# Destroy previous widgets
+	$$self{frame}{vbvar} -> foreach( sub { $_[0] -> destroy(); } );
 
-    # Empty parent widgets' list
-    $$self{list} = [];
+	# Empty parent widgets' list
+	$$self{list} = [];
 
-    # Now, add the -new?- widgets
-    foreach my $var (sort {$a cmp $b} keys %{$$self{cfg}}) {
-        _buildVar($self, $var, $$self{cfg}{$var}{'value'},$$self{cfg}{$var}{'hidden'});
-    }
+	# Now, add the -new?- widgets
+	foreach my $var ( sort _sortVariableNames keys %{ $$self{cfg} } ) { _buildVar( $self, $var, $$self{cfg}{$var}{'value'}, $$self{cfg}{$var}{'hidden'} ); }
 
-    return 1;
+	return 1;
 }
 
 sub get_cfg {
@@ -109,11 +107,96 @@ sub get_cfg {
     return \%hash;
 }
 
+sub generatePopupMenu{
+	#For use mainly in PACEdit and derivatives
+	my ($cfg,$menuLabel,$itemPrefix,$entryWidget)=@_;
+	my @menu;
+	foreach my $item ( _cfg_as_list($cfg) ){
+		push( @menu, {
+			label => "<$itemPrefix:$item->{name}> (" . ($item->{hidden} ? '*****' : $item->{value}) . ")",
+			code => ($entryWidget -> isa('Gtk2::TextBuffer') or $entryWidget -> isa('Gtk2::SourceView2::Buffer')) ?
+				sub { $entryWidget -> insert_at_cursor( "<$itemPrefix:$item->{name}>" );}
+				:
+				sub { $entryWidget -> insert_text( "<$itemPrefix:$item->{name}>", -1, $entryWidget -> get_position ); }
+		});
+	}
+	return {
+			label => $menuLabel,
+			sensitive => scalar( @menu ),
+			submenu => \@menu
+		}
+}
+
+sub generateQuickEditSubMenu{
+	#For use mainly in PACMain and derivatives
+	my ($cfg) = @_;
+
+	my @var_submenu;
+	foreach my $varName ( map {$_->{name}} _cfg_as_list($cfg) ) {
+		my $varValue=$cfg->{$varName}{value};
+		push( @var_submenu, {
+			label => '<V:' . $varName . '> = ' . $varValue,
+			code => sub {
+
+				my $new_varValue = _wEnterValue(
+					undef,
+					"Change variable <b>" . __( "<V:$varName>" ) . "</b>",
+					'Enter a NEW value or close to keep this value...',
+					$varValue
+				);
+				! defined $new_varValue and return 1;
+				$cfg->{$varName}{value} = $new_varValue;
+			}
+		} );
+	}
+	return \@var_submenu;
+}
+
+sub generateRightClickMenu{
+	#For use mainly in PACTerminal
+	my ($cfg,$menuLabel,$itemPrefix,$terminal) = @_ ;
+
+	my @variables_menu;
+	foreach my $item ( _cfg_as_list($cfg) ){
+		push( @variables_menu,
+		{
+			label => __( $item->{name} ),
+			tooltip => "$item->{name}=$item->{value}",
+			code => sub { my $t = _subst( "<$itemPrefix:".$item->{name}.">", $terminal->{_CFG}, $terminal->{_UUID} ); $terminal->{_GUI}{_VTE} -> feed_child( $t ); }
+		} );
+	}
+	return 	{
+		label => $menuLabel,
+		sensitive => scalar( @variables_menu ),
+		submenu => \@variables_menu
+	} ;
+}
+
 # END: Public class methods
 ###################################################################
 
 ###################################################################
 # START: Private functions definitions
+
+sub _cfg_as_list {
+	my ($cfg) = @_;
+	#returns sorted list of hashes {var,val}
+	return 	map{
+				{	name 	=> $_ ,
+					value 	=> $cfg->{$_}{value},
+					hidden 	=> $cfg->{$_}{hidden}
+				}
+			}
+			sort _sortVariableNames
+			keys( %$cfg );
+}
+
+sub _sortVariableNames{
+	return  0 if $a eq $newVariableName and $b eq $newVariableName;
+	return -1 if $a eq $newVariableName;
+	return  1 if $b eq $newVariableName;
+	return $a cmp $b;
+}
 
 sub _buildVarGUI {
     my $self = shift;
@@ -159,12 +242,14 @@ sub _buildVarGUI {
     $w{btnadd}->signal_connect('clicked', sub {
         # Save current cfg
         $$self{cfg} = $self->get_cfg();
-        # Append an empty var entry to cfg
-        $$self{cfg}{' _variable'}{'value'} = '_value';
-        $$self{cfg}{' _variable'}{'hidden'} = 0;
+		if (not defined $$self{cfg}{$newVariableName} ){
+			# Add a default var entry to cfg
+			$$self{cfg}{$newVariableName}{'value'} = 'variable value';
+			$$self{cfg}{$newVariableName}{'hidden'} = 0;
+		}
         # Update gui
         $self->update();
-        # Set keyboard focus on first created entry
+        # Set keyboard focus on newly created entry
         $$self{list}[0]{var}->grab_focus();
         return 1;
     });

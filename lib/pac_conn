@@ -402,14 +402,14 @@ sub subst {
         }
     }
 
-    # Replace '<V:#>' with user saved variables for '$connection_cmd'
-    while ($string =~ /<V:(\d+?)>/go) {
+	# Replace '<V:.+>' with user saved variables for '$connection_cmd'
+	while ( $string =~ /<V:(.+?)>/go ) {
         my $var = $1;
-        if (defined $$CFG{'environments'}{$UUID}{'variables'}[$var]) {
-            my $val = $$CFG{'environments'}{$UUID}{'variables'}[$var]{txt} // '';
+        if ( defined $$CFG{'environments'}{$UUID}{'variables'}{$var} ) {
+            my $val = $$CFG{'environments'}{$UUID}{'variables'}{$var}{value} // '';
             $string =~ s/<V:$var>/$val/g;
-        }
-    }
+		}
+	}
 
     # Replace '<ENV:#>' with environment variables for '$connection_cmd'
     while ($string =~ /<ENV:(.+?)>/go) {

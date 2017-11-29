@@ -548,24 +548,11 @@ sub _setupCallbacks {
 
         my @menu_items;
 
-        # Populate with global defined variables
-        my @global_variables_menu;
-        foreach my $var (sort {$a cmp $b} keys %{$PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'}}) {
-            my $val = $PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'}{$var}{'value'};
-            push(@global_variables_menu,
-            {
-                label => "<GV:$var> ($val)",
-                code => sub {$$self{_WINDOWPCC}{multiTextBuffer}->insert_at_cursor("<GV:$var>");}
-            });
-        }
-        push(@menu_items,
-        {
-            label => 'Global variables...',
-            sensitive => scalar(@global_variables_menu),
-            submenu => \@global_variables_menu
-        });
+		# Populate with global defined variables
+		push( @menu_items,
+			PACVariables::generatePopupMenu($PACMain::FUNCS{_MAIN}{_CFG}{'defaults'}{'global variables'},"Global variables...","GV",$$self{_WINDOWPCC}{multiTextBuffer})  );
 
-        # Populate with environment variables
+		# Populate with environment variables
         my @environment_menu;
         foreach my $key (sort {$a cmp $b} keys %ENV) {
             my $value = $ENV{$key};
