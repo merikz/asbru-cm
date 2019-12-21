@@ -1099,6 +1099,9 @@ sub _setupCallbacks {
 
             my $total_exp = 0;
             foreach my $exp (@{$$self{_CFG}{'environments'}{$uuid}{'expect'}}) {
+#XXX regression? Seems 63837a7 inverted this logic?
+# (Seems "...with X number of active expects" is missing in the connection tooltip due to this.)
+print("XXX is there a regression in ".__FILE__." on line ". __LINE__."?\n");
                 if ($$exp{'active'} // 0) {
                     next;
                 }
@@ -1309,6 +1312,10 @@ sub _setupCallbacks {
             my @sel = $$self{_GUI}{$what}->_getSelectedUUIDs;
             # e --> Show main edit connection window
             if (chr($keyval) eq 'e') {
+#XXX regression? Seems 63837a7 changed this logic (precedence if ! vs unless). A negated string is '' or '1'.)?
+# (This code probably works anyway since the __PAC_SHELL__ cannot be a favourite, can it???
+# But I don't know how to trigger this code. "Favourites" seems buggy.)
+print("XXX is there a regression in ".__FILE__." on line ". __LINE__."?\n");
                 if (!$sel[0] eq '__PAC_SHELL__') {
                     $$self{_GUI}{connEditBtn}->clicked;
                 }
@@ -1814,6 +1821,9 @@ sub _setupCallbacks {
     });
 
     $$self{_GUI}{_btnNextSearch}->signal_connect('clicked' => sub {
+#XXX regression? Seems 63837a7 inverted this logic?
+# (Seems "Next" button in search results in connection tree fails due to this?)
+print("XXX is there a regression in ".__FILE__." on line ". __LINE__."?\n");
         if (@{ $$self{_GUI}{_RESULT} }) {
             return 1;
         }
@@ -3459,7 +3469,10 @@ sub _saveTreeExpanded {
     $modelsort->foreach(sub {
         my ($store, $path, $iter, $tmp) = @_;
         my $uuid = $store->get_value($iter, 2);
+print("XXX is there a regression in ".__FILE__." on line ". __LINE__."?\n");
         if (!$tree->row_expanded($path) && $uuid ne '__PAC__ROOT__') {
+#XXX regression? Seems 63837a7 changed this logic (precedence if ! vs unless))?
+# (This seems to work anyway, since uuid is never __PAC_ROOT__, is it ???)
             return 0;
         }
         print F $uuid . "\n";

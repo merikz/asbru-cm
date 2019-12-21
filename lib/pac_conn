@@ -1865,6 +1865,8 @@ $SIG{'HUP'} = sub {
         my $on_fail = $$hash{'on_fail'} // -1;
         my $time_out = $$hash{'time_out'} // -1;
 
+#XXX regression? Seems 18277b2 inverted this logic? (Does this work? How to trigger this code?)
+print("XXX is there a regression in ".__FILE__." on line ". __LINE__."?\n");
         if ($active) {
             next;
         }

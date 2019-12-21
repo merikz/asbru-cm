@@ -920,6 +920,8 @@ sub _setupCallbacks {
         }
         if ($i && _wConfirm($$self{_WINDOWCLUSTER}{main}, "Remove running terminals from deleted cluster <b>'$cluster'</b>?")) {
             foreach my $uuid (keys %{$$self{_RUNNING}}) {
+#XXX regression? Seems b40dc877 inverted this logic? (Does this work?)
+print("XXX is there a regression in ".__FILE__." on line ". __LINE__."?\n");
                 if ($$self{_RUNNING}{$uuid}{terminal}{_CLUSTER} eq $cluster) {
                     next;
                 }
@@ -1028,6 +1030,8 @@ sub _setupCallbacks {
 
         my @idx;
         foreach my $uuid (@sel) {push(@idx, [$uuid]);}
+#XXX regression? Seems b40dc877 changed this logic, "unless scalar @x ==1" is not same as "if scalar @x ==0""? (Does this work?)
+print("XXX is there a regression in ".__FILE__." on line ". __LINE__."?\n");
         if (scalar @idx == 0) {
             return 0;
         }
@@ -1083,6 +1087,8 @@ sub _setupCallbacks {
             foreach my $uuid (@sel) {
                 push(@idx, [$uuid]);
             }
+#XXX regression? Seems b40dc877 changed this logic, "unless scalar @x ==1" is not same as "if scalar @x ==0""? (Does this work?)
+print("XXX is there a regression in ".__FILE__." on line ". __LINE__."?\n");
             if (scalar @idx == 0) {
                 return 0;
             }
@@ -1110,6 +1116,8 @@ sub _setupCallbacks {
             foreach my $uuid (@sel) {
                 push(@idx, [$uuid]);
             }
+#XXX regression? Seems b40dc877 changed this logic, "unless scalar @x ==1" is not same as "if scalar @x ==0""? (Does this work?)
+print("XXX is there a regression in ".__FILE__." on line ". __LINE__."?\n");
             if (scalar @idx == 0) {
                 return 0;
             }
@@ -1129,6 +1137,8 @@ sub _setupCallbacks {
 
     $$self{_WINDOWCLUSTER}{treeAutocluster}->get_selection->signal_connect('changed' => sub {
         my @selection = $$self{_WINDOWCLUSTER}{treeAutocluster}->get_selected_indices;
+#XXX regression? Seems b40dc877 changed this logic, "unless scalar @x ==1" is not same as "if scalar @x ==0""? (Does this work?)
+print("XXX is there a regression in ".__FILE__." on line ". __LINE__."?\n");
         if (scalar(@selection) == 0) {
             return 1;
         }
@@ -1234,6 +1244,8 @@ sub _setupCallbacks {
         }
         if ($i && _wConfirm($$self{_WINDOWCLUSTER}{main}, "Remove running terminals from deleted cluster <b>'$cluster'</b>?")) {
             foreach my $uuid (keys %{$$self{_RUNNING}}) {
+#XXX regression? Seems b40dc877 inverted this logic? (Does this work?)
+print("XXX is there a regression in ".__FILE__." on line ". __LINE__."?\n");
                 if ($$self{_RUNNING}{$uuid}{terminal}{_CLUSTER} eq $cluster) {
                     next;
                 }
@@ -1264,6 +1276,8 @@ sub _setupCallbacks {
             my $text = $$self{_WINDOWCLUSTER}{"entry${entry}"}->get_chars(0, -1);
             $PACMain::FUNCS{_MAIN}{_CFG}{defaults}{'auto cluster'}{$cluster}{$entry} = $text;
             #$PACMain::FUNCS{_MAIN}{_CFG}{tmp}{changed} = 1 unless $$self{_UPDATING};
+#XXX regression? Seems b40dc877 inverted this logic? (Does this work?)
+print("XXX is there a regression in ".__FILE__." on line ". __LINE__."?\n");
             if ($$self{_UPDATING}) {
                 $PACMain::FUNCS{_MAIN}->_setCFGChanged(1);
             }
@@ -1357,6 +1371,8 @@ sub _setupCallbacks {
 
         $tree->get_selection->signal_connect('changed' => sub {
             my @selection = $tree->get_selected_indices;
+#XXX regression? Seems b40dc877 changed this logic, "unless scalar @x ==1" is not same as "if scalar @x ==0""? (Does this work?)
+print("XXX is there a regression in ".__FILE__." on line ". __LINE__."?\n");
             if (scalar(@selection) == 0) {
                 return 1;
             }
